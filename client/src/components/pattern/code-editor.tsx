@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,9 +7,6 @@ import { Play, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as monaco from 'monaco-editor';
 
-// Import Monaco Editor
-// Monaco will be loaded at runtime via a CDN
-// This is just for type definitions
 interface CodeEditorProps {
   initialCode: string;
   language: string;
@@ -25,7 +23,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
   const editorInstanceRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   
   useEffect(() => {
-    // Load Monaco Editor dynamically
     let script = document.createElement('script');
     script.src = "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js";
     script.async = true;
@@ -39,7 +36,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
       // @ts-ignore - Monaco loader is loaded at runtime
       window.require(['vs/editor/editor.main'], () => {
         if (editorContainerRef.current) {
-          // Create editor
           const editor = monaco.editor.create(editorContainerRef.current, {
             value: initialCode,
             language: language,
@@ -53,10 +49,8 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
             padding: { top: 16 }
           });
           
-          // Store editor instance
           editorInstanceRef.current = editor;
           
-          // Listen for content changes
           editor.onDidChangeModelContent(() => {
             setCode(editor.getValue());
           });
@@ -67,7 +61,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
     document.body.appendChild(script);
     
     return () => {
-      // Destroy editor instance when component unmounts
       if (editorInstanceRef.current) {
         editorInstanceRef.current.dispose();
       }
@@ -75,7 +68,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
     };
   }, [initialCode, language]);
   
-  // Update editor theme when app theme changes
   useEffect(() => {
     if (editorInstanceRef.current) {
       monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
@@ -86,7 +78,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
     setIsRunning(true);
     setActiveTab("output");
     
-    // Capture console.log output
     const originalConsoleLog = console.log;
     let outputBuffer: any[] = [];
     
@@ -98,10 +89,8 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
     
     setTimeout(() => {
       try {
-        // Reset output
         setOutput('');
         
-        // Create a sandbox function to run the code
         const sandboxFunc = new Function(`
           try {
             ${code}
@@ -131,7 +120,6 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
           variant: "destructive",
         });
       } finally {
-        // Restore original console.log
         console.log = originalConsoleLog;
         setIsRunning(false);
       }
@@ -140,9 +128,9 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
   
   return (
     <div className="mb-8 space-y-4 border border-border rounded-md overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-accent bg-opacity-10">
-        <Tabs defaultValue="code" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-between items-center">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between px-4 py-2 bg-accent bg-opacity-10">
+          <div className="flex justify-between items-center w-full">
             <TabsList>
               <TabsTrigger value="code">Code Editor</TabsTrigger>
               <TabsTrigger value="output">Output</TabsTrigger>
@@ -166,21 +154,21 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
               )}
             </Button>
           </div>
-        </Tabs>
-      </div>
-
-      <TabsContent value="code" className="m-0">
-        <div 
-          ref={editorContainerRef} 
-          className="h-64 border-t border-border"
-        />
-      </TabsContent>
-      
-      <TabsContent value="output" className="m-0">
-        <div className="h-64 font-mono p-4 text-sm overflow-y-auto border-t border-border bg-accent bg-opacity-5">
-          <pre className="whitespace-pre-wrap">{output}</pre>
         </div>
-      </TabsContent>
+
+        <TabsContent value="code" className="m-0">
+          <div 
+            ref={editorContainerRef} 
+            className="h-64 border-t border-border"
+          />
+        </TabsContent>
+        
+        <TabsContent value="output" className="m-0">
+          <div className="h-64 font-mono p-4 text-sm overflow-y-auto border-t border-border bg-accent bg-opacity-5">
+            <pre className="whitespace-pre-wrap">{output}</pre>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
