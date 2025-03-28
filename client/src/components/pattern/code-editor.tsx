@@ -6,6 +6,32 @@ import { Play, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as monaco from "monaco-editor";
 
+// Initialize Monaco environment
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
+import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
+import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+
+// Register workers
+self.MonacoEnvironment = {
+  getWorker(_, label) {
+    if (label === 'json') {
+      return new jsonWorker();
+    }
+    if (label === 'css' || label === 'scss' || label === 'less') {
+      return new cssWorker();
+    }
+    if (label === 'html' || label === 'handlebars' || label === 'razor') {
+      return new htmlWorker();
+    }
+    if (label === 'typescript' || label === 'javascript') {
+      return new tsWorker();
+    }
+    return new editorWorker();
+  }
+};
+
 interface CodeEditorProps {
   initialCode: string;
   language: string;
@@ -26,53 +52,31 @@ export default function CodeEditor({ initialCode, language }: CodeEditorProps) {
   );
 
   useEffect(() => {
-    let script = document.createElement("script");
-    script.src =
-      "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js";
-    script.async = true;
-
-    script.onload = () => {
-      // @ts-ignore - Monaco loader is loaded at runtime
-      window.require.config({
-        paths: {
-          vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs",
-        },
+    if (editorContainerRef.current) {
+      const editor = monaco.editor.create(editorContainerRef.current, {
+        value: initialCode,
+        language: language,
+        theme: theme === "dark" ? "vs-dark" : "vs",
+        automaticLayout: true,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        fontSize: 14,
+        fontFamily: "JetBrains Mono, monospace",
+        lineHeight: 1.5,
+        padding: { top: 16 },
       });
 
-      // @ts-ignore - Monaco loader is loaded at runtime
-      window.require(["vs/editor/editor.main"], () => {
-        if (editorContainerRef.current) {
-          const editor = monaco.editor.create(editorContainerRef.current, {
-            value: initialCode,
-            language: language,
-            theme: theme === "dark" ? "vs-dark" : "vs",
-            automaticLayout: true,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            fontSize: 14,
-            fontFamily: "JetBrains Mono, monospace",
-            lineHeight: 1.5,
-            padding: { top: 16 },
-          });
+      editorInstanceRef.current = editor;
 
-          editorInstanceRef.current = editor;
-
-          editor.onDidChangeModelContent(() => {
-            setCode(editor.getValue());
-          });
-        }
+      editor.onDidChangeModelContent(() => {
+        setCode(editor.getValue());
       });
-    };
 
-    document.body.appendChild(script);
-
-    return () => {
-      if (editorInstanceRef.current) {
-        editorInstanceRef.current.dispose();
-      }
-      document.body.removeChild(script);
-    };
-  }, [initialCode, language]);
+      return () => {
+        editor.dispose();
+      };
+    }
+  }, [initialCode, language, theme]);
 
   useEffect(() => {
     if (editorInstanceRef.current) {
